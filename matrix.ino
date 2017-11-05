@@ -7,7 +7,7 @@
 const byte chips = 4;
 
 const char* ssid = "smartHome";
-const char* password = "Tm_77?w8bhP";
+const char* password = "gffdIH/HKg";
 const char* mqtt_server = "192.168.178.22";
 
 bool lauftext = false;
