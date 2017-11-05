@@ -1,17 +1,15 @@
 #include <ESP8266WiFi.h>
+#include <ESP8266WiFiMulti.h>
+#include <WiFiClient.h>
 #include <PubSubClient.h>
 #include <SPI.h>
-#include <string.h>
 #include <bitBangedSPI.h>
 #include <MAX7219_Dot_Matrix.h>
 const byte chips = 4;
-
-const char* ssid = "smartHome";
-const char* password = "gffdIH/HKg";
-const char* mqtt_server = "192.168.178.22";
-
+const char* mqtt_server = "10.11.12.1";
 bool lauftext = false;
 
+ESP8266WiFiMulti WiFiMulti;
 WiFiClient espClient;
 PubSubClient client(espClient);
 
@@ -20,28 +18,24 @@ MAX7219_Dot_Matrix display (chips, 2);  // Chips / LOAD
 
 char message [] = "Waiting for data to show.";
 
-void setup_wifi() {
-  display.sendString("WiFi");
-   delay(100);
-  // We start by connecting to a WiFi network
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) 
-    {
-      delay(500);
-      Serial.print(".");
-    }
-  randomSeed(micros());
+void connect(){
+  //WiFi.mode(WIFI_OFF);
+  WiFiMulti.addAP("smartHome", "Tm_77?w8bhP");
+
+  Serial.println();
+  Serial.println();
+  Serial.print("Wait for WiFi... ");
+
+  while(WiFiMulti.run() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
   Serial.println("");
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
-  String ip = WiFi.localIP().toString();
-  ip.toCharArray(message, 50);
-  lauftext = true;
+  
 }
-
 
 void callback(char* topic, byte* payload, unsigned int length) {
   payload[length] = '\0';
@@ -62,8 +56,17 @@ void callback(char* topic, byte* payload, unsigned int length) {
   if(strTopic == "matrix/sendSmooth"){
     Serial.println("Lauftext: ");
     Serial.println(input);
+    String NewMessage = input;
+    NewMessage.toCharArray(message, 5000);
+    //updateDisplay();
+    lauftext = true;
+  }
+  if(strTopic == "matrix/sendString"){
+    Serial.println("Text: ");
+    Serial.println(input);
     char* message = input;
-    updateDisplay();
+    lauftext = false;
+    display.sendString(message);
   }
 }
 void reconnect() {
@@ -91,10 +94,14 @@ void setup () {
   Serial.begin(9600);
   display.begin ();
   display.setIntensity(15);
-  display.sendString("BOOT");
-  setup_wifi();
+  display.sendString("WiFi");
+  connect();
+  display.sendString("MQTT");
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
+  String ip = WiFi.localIP().toString();
+  ip.toCharArray(message, 50);
+  lauftext = true;
 }
 
 unsigned long lastMoved = 0;
